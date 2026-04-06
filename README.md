@@ -96,3 +96,116 @@ scheduler.add_job(my_task, 'cron', hour=9, minute=0)  # каждый день в
 ЗАКЛЮЧЕНИЕ 
  
 APScheduler - это мощный инструмент для автоматизации задач в Python. Он позволяет заменить системные планировщики и встроить расписание прямо в приложение. Главное преимущество - простота настройки и работа без прав администратора. 
+ 
+ 
+## РАЗБОР КОДА 
+ 
+Посмотрим на файл `src/scheduler_demo.py` и разберем каждую часть: 
+ 
+```python 
+from apscheduler.schedulers.background import BackgroundScheduler 
+``` 
+ 
+**BackgroundScheduler** - это основной класс для планирования задач. Он работает в фоновом потоке, не блокируя основную программу. 
+ 
+```python 
+def task_1(): 
+    print(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Задача 1 выполнена!") 
+``` 
+ 
+**def task_1():** - это обычная Python-функция, которая будет выполняться по расписанию. Внутри неё может быть любой код: отправка письма, запрос к API, запись в базу данных. 
+ 
+```python 
+scheduler = BackgroundScheduler() 
+``` 
+ 
+**scheduler = BackgroundScheduler()** - создаем экземпляр планировщика. 
+ 
+```python 
+run_time = datetime.datetime.now() + datetime.timedelta(seconds=5) 
+scheduler.add_job(task_1, 'date', run_date=run_time, id='job_date') 
+``` 
+ 
+**add_job()** - добавляет задачу в планировщик. Параметры: 
+- `task_1` - функция, которую нужно выполнить 
+- `'date'` - тип триггера (одноразовое выполнение) 
+- `run_date` - дата и время выполнения 
+- `id` - уникальный идентификатор задачи 
+ 
+```python 
+scheduler.add_job(task_2, 'interval', seconds=3, id='job_interval') 
+``` 
+ 
+**'interval'** - триггер для периодического выполнения. `seconds=3` означает "каждые 3 секунды". Можно также использовать `minutes`, `hours`, `days`. 
+ 
+```python 
+scheduler.add_job(task_3, 'cron', minute='*', id='job_cron') 
+``` 
+ 
+**'cron'** - триггер для сложного расписания в стиле cron. `minute='*'` означает "каждую минуту". Примеры: 
+- `hour='9', minute='0'` - каждый день в 9:00 
+- `day_of_week='mon-fri', hour='8'` - по будням в 8:00 
+- `hour='*/2'` - каждые 2 часа 
+ 
+```python 
+scheduler.start() 
+``` 
+ 
+**scheduler.start()** - запускает планировщик. После этого задачи начинают выполняться по расписанию. 
+ 
+```python 
+try: 
+    while True: 
+        time.sleep(1) 
+except KeyboardInterrupt: 
+    scheduler.shutdown() 
+``` 
+ 
+**try/except KeyboardInterrupt** - бесконечный цикл, который работает до нажатия Ctrl+C. При остановке вызывается `scheduler.shutdown()` для корректного завершения всех задач. 
+ 
+--- 
+ 
+## ПРИМЕРЫ ИСПОЛЬЗОВАНИЯ 
+ 
+### Пример 1: Отправка отчёта каждый день в 9 утра 
+ 
+```python 
+def send_report(): 
+    # код отправки отчёта 
+    print("Отчёт отправлен") 
+ 
+scheduler.add_job(send_report, 'cron', hour=9, minute=0) 
+``` 
+ 
+### Пример 2: Проверка новых заказов каждые 5 минут 
+ 
+```python 
+def check_orders(): 
+    # код проверки заказов 
+    print("Заказы проверены") 
+ 
+scheduler.add_job(check_orders, 'interval', minutes=5) 
+``` 
+ 
+### Пример 3: Резервное копирование базы данных каждое воскресенье в 3 часа ночи 
+ 
+```python 
+def backup_db(): 
+    # код бэкапа базы данных 
+    print("Бэкап создан") 
+ 
+scheduler.add_job(backup_db, 'cron', day_of_week='sun', hour=3, minute=0) 
+``` 
+ 
+--- 
+ 
+## ВОЗМОЖНЫЕ ПРОБЛЕМЫ 
+ 
+**В: Задача не выполняется в указанное время** 
+О: Проверьте, что планировщик запущен (scheduler.start()) и программа не завершилась. Для фоновых задач нужен бесконечный цикл. 
+ 
+**В: Как остановить задачу?** 
+О: Используйте `scheduler.remove_job('job_id')` или `scheduler.shutdown()` 
+ 
+**В: Задача выполняется несколько раз одновременно** 
+О: Используйте `max_instances=1` в add_job(), чтобы ограничить количество одновременных запусков. 
